@@ -16,19 +16,23 @@ const bucket = new AWS.S3({
   }
 });
 
-export function listObjects() {
-  console.log("listing objects");
-  const listObjects = new Promise(resolve => {
-    bucket.listObjects((error, data) => {
+export function listObjects(number) {
+  if (typeof number !== "number") throw new Error(`listObjects expects a number. Got: ${typeof number}`)
+  if (number < 1) throw new Error("listObjects number should be a non-zero positive integer.")
+  const listObjects = new Promise((resolve, reject) => {
+    bucket.listObjects({ MaxKeys: `${number}` }, (error, data) => {
       if (error) {
         console.error("error: ", error);
         return;
       }
-
-      resolve(data.Contents);
+      let sortedByDateData = data.Contents.sort(function (a, b) {
+        a = new Date(a.LastModified);
+        b = new Date(b.LastModified);
+        return a < b ? -1 : a > b ? 1 : 0;
+      });
+      resolve(sortedByDateData);
     });
   });
-
   return listObjects;
 }
 
@@ -66,7 +70,6 @@ export function saveObject(file) {
           console.error("error: ", error);
           return;
         }
-
         resolve(data);
       }
     );
